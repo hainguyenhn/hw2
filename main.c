@@ -35,7 +35,14 @@ bool notVisited(int id, int* visited,int length);
 //shortest job first
 void shortestFirst(struct Process* myProcess, int arrayLength);
 
+//sort array of process according to arrival time
+void sort(struct Process* unsortList,struct Process* sortedList, int arrayLength);
+
+//report Processing
 struct Report* reportProcessing(struct Process* sorted, int arrayLength);
+
+//check if process is already complete
+bool notVisited(int id, int* visited,int length)
 
 int main()
 {
@@ -84,24 +91,8 @@ struct Process* makeProcesses(struct Process* myList,int num){
 
 void firstComefirstServe(struct Process* myProcess, int arrayLength){
     struct Process sorted[arrayLength];
-    int i = 0;
 
-    //copy array
-    for (i = 0; i < arrayLength; i++){
-        sorted[i] = myProcess[i];
-    }
-    int j = 0;
-
-    //sort using bubble sort
-    for(i = 0; i < arrayLength; i++){
-        for (j = 0; j < arrayLength - 1 -i; j++){
-            if (sorted[j].arrivalTime > sorted[j+1].arrivalTime){
-                struct Process temp = sorted[j];
-                sorted[j] = sorted[j+1];
-                sorted[j+1] = temp;
-            }
-        }
-    }
+    sort(myProcess,sorted,arrayLength);
     myPrint(sorted,arrayLength);
     struct Report* myReport = reportProcessing(sorted,arrayLength);
         printReport(myReport,115);
@@ -109,22 +100,10 @@ void firstComefirstServe(struct Process* myProcess, int arrayLength){
 
 void shortestFirst(struct Process* myProcess, int arrayLength){
      struct Process sortedArrival[arrayLength];
-    int i = 0;
-    //copy to new array.
-    for (i = 0; i < arrayLength; i++){
-        sortedArrival[i] = myProcess[i];
-    }
-    int j = 0;
-    //sort array according to arrival time.
-    for(i = 0; i < arrayLength; i++){
-        for (j = 0; j < arrayLength - 1 -i; j++){
-            if (sortedArrival[j].arrivalTime > sortedArrival[j+1].arrivalTime){
-                struct Process temp = sortedArrival[j];
-                sortedArrival[j] = sortedArrival[j+1];
-                sortedArrival[j+1] = temp;
-            }
-        }
-    }
+      int i = 0;
+       int j = 0;
+    sort(myProcess,sortedArrival,arrayLength);
+
         myPrint(sortedArrival,arrayLength);
     struct Process finalSorted[arrayLength];
     int counter = 0;
@@ -167,16 +146,7 @@ void shortestFirst(struct Process* myProcess, int arrayLength){
         printReport(myReport,115);
     }
 
-bool notVisited(int id, int* visited,int length){
-    bool result = true;
-    int i;
-    for(i = 0; i < length; i++){
-        if(visited[i] == id){
-            result = false;
-        }
-    }
-    return result;
-}
+
 
 struct Report* reportProcessing(struct Process* sorted, int arrayLength){
     struct Report* myReport = malloc(sizeof(struct Report));
@@ -238,7 +208,36 @@ void myPrint(struct Process* myArray,int arrayLength){
     for (j = 0; j < arrayLength; j++){
     printf("%c%20.2f%18.2f%15d\n", (char)(myArray[j].processId), myArray[j].arrivalTime, myArray[j].runTime, myArray[j].priority);
     }
+}
 
+void sort(struct Process* unsortList,struct Process* sortedList, int arrayLength){
+     int i = 0;
+    //copy to new array.
+    for (i = 0; i < arrayLength; i++){
+        sortedList[i] = unsortList[i];
+    }
+    int j = 0;
+    //sort array according to arrival time.
+    for(i = 0; i < arrayLength; i++){
+        for (j = 0; j < arrayLength - 1 -i; j++){
+            if (sortedList[j].arrivalTime > sortedList[j+1].arrivalTime){
+                struct Process temp = sortedList[j];
+                sortedList[j] = sortedList[j+1];
+                sortedList[j+1] = temp;
+            }
+        }
+    }
+};
+
+bool notVisited(int id, int* visited,int length){
+    bool result = true;
+    int i;
+    for(i = 0; i < length; i++){
+        if(visited[i] == id){
+            result = false;
+        }
+    }
+    return result;
 }
 
 
