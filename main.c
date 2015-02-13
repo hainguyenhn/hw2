@@ -29,7 +29,6 @@ void printReport(struct Report* myReport,int length);
 //first come first serve
 void firstComefirstServe(struct Process* myProcess, int arrayLenth);
 
-
 //shortest job first
 void shortestFirst(struct Process* myProcess, int arrayLength);
 
@@ -39,8 +38,8 @@ void sort(struct Process* unsortList,struct Process* sortedList, int arrayLength
 //report Processing
 struct Report* reportProcessing(struct Process* sorted, int arrayLength);
 
-//check if process is already complete
-bool notVisited(int id, int* visited,int length);
+//highest priority first - non preemtive
+void highestPriorFirstNonPre(struct Process* myProcess,int arrayLength);
 
 int main()
 {
@@ -170,14 +169,11 @@ int main()
   myProcessList[24].runTime = 5.1;
   myProcessList[24].priority = 1;
 
-
-
-
-
   //akeProcesses(myProcessList,5);
-  myPrint(myProcessList,25);
-  firstComefirstServe(myProcessList,25);
-  shortestFirst(myProcessList,25);
+ // myPrint(myProcessList,25);
+  //firstComefirstServe(myProcessList,25);
+  //shortestFirst(myProcessList,25);
+  highestPriorFirstNonPre(myProcessList,25);
 
  return 0;
 }
@@ -208,9 +204,9 @@ void firstComefirstServe(struct Process* myProcess, int arrayLength){
 }
 
 void shortestFirst(struct Process* myProcess, int arrayLength){
-     struct Process tempArray[arrayLength];
     int i = 0;
     int nextProcess;
+    struct Process tempArray[arrayLength];
     //sort temp array to shortest arrival time.
     sort(myProcess,tempArray,arrayLength);
     struct Process finalSorted[arrayLength];
@@ -246,6 +242,48 @@ void shortestFirst(struct Process* myProcess, int arrayLength){
         printReport(myReport,115);
         printf("-----------------------------\n");
     }
+
+
+void highestPriorFirstNonPre(struct Process* myProcess,int arrayLength){
+    int i = 0;
+    int nextProcess;
+    struct Process tempArray[arrayLength];
+    //sort temp array to shortest arrival time.
+    sort(myProcess,tempArray,arrayLength);
+    myPrint(tempArray,arrayLength);
+    struct Process finalSorted[arrayLength];
+
+    int counter = 0;
+    float currentTime = tempArray[0].arrivalTime;
+    //loop through until all  processes are completed
+    while(counter < arrayLength){
+             nextProcess = -99;
+        //find the next shortest job up to current time.
+        for(i = 0; i < arrayLength; i++){
+                if((tempArray[i].processId != -99) && (tempArray[i].arrivalTime <= currentTime)){
+                        //set temp to be the first qualify candidate.
+                        if(nextProcess == -99){
+                            nextProcess = i;
+                        }
+                //if current process has shorter run time than nextProcess then set nextProcess to be current.
+                    if(tempArray[i].priority < tempArray[nextProcess].priority){
+                        nextProcess = i;
+                   }
+                }
+            }
+           //add to visited
+           currentTime += (int)ceilf(tempArray[nextProcess].runTime);
+           //
+           finalSorted[counter++] = tempArray[nextProcess];
+           //mark process as done.
+           tempArray[nextProcess].processId = -99;
+        }
+        struct Report* myReport = reportProcessing(finalSorted,arrayLength);
+        printf("\nHighest Priority First (Non Preemptive) Analysis \n");
+        printf("-----------------------------\n");
+        printReport(myReport,115);
+        printf("-----------------------------\n");
+}
 
 struct Report* reportProcessing(struct Process* sorted, int arrayLength){
     struct Report* myReport = malloc(sizeof(struct Report));
@@ -286,6 +324,7 @@ struct Report* reportProcessing(struct Process* sorted, int arrayLength){
         myReport->throughPut = timeCounter/(i);
         return myReport;
 }
+
 
 void printReport(struct Report* myReport,int length){
     printf("Average Turn Around Time: %.2f\n", myReport->avgTurnAround);
