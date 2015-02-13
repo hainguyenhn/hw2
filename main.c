@@ -29,8 +29,6 @@ void printReport(struct Report* myReport,int length);
 //first come first serve
 void firstComefirstServe(struct Process* myProcess, int arrayLenth);
 
-//
-bool notVisited(int id, int* visited,int length);
 
 //shortest job first
 void shortestFirst(struct Process* myProcess, int arrayLength);
@@ -178,10 +176,8 @@ int main()
 
   //akeProcesses(myProcessList,5);
   myPrint(myProcessList,25);
-  //printf("After sorted first come first serve\n");
   firstComefirstServe(myProcessList,25);
-  //printf("After sorted shortest first \n");
- // shortestFirst(myProcessList,5);
+  shortestFirst(myProcessList,25);
 
  return 0;
 }
@@ -204,60 +200,52 @@ void firstComefirstServe(struct Process* myProcess, int arrayLength){
     struct Process sorted[arrayLength];
 
     sort(myProcess,sorted,arrayLength);
-    myPrint(sorted,arrayLength);
     struct Report* myReport = reportProcessing(sorted,arrayLength);
+        printf("First Come First Serve Analysis \n");
+        printf("-------------------------------\n");
         printReport(myReport,115);
+        printf("-------------------------------\n");
 }
 
 void shortestFirst(struct Process* myProcess, int arrayLength){
-     struct Process sortedArrival[arrayLength];
-      int i = 0;
-       int j = 0;
-    sort(myProcess,sortedArrival,arrayLength);
-
-        myPrint(sortedArrival,arrayLength);
+     struct Process tempArray[arrayLength];
+    int i = 0;
+    int nextProcess;
+    //sort temp array to shortest arrival time.
+    sort(myProcess,tempArray,arrayLength);
     struct Process finalSorted[arrayLength];
+
     int counter = 0;
-    int visited[] = {0,0,0,0,0};
-    int currentTime = (int)sortedArrival[0].arrivalTime;
+    float currentTime = tempArray[0].arrivalTime;
     //loop through until all  processes are completed
     while(counter < arrayLength){
-            int temp = 0;
-        //find the next shortest job
+             nextProcess = -99;
+        //find the next shortest job up to current time.
         for(i = 0; i < arrayLength; i++){
-                if((notVisited(sortedArrival[i].processId,visited,arrayLength)) && (sortedArrival[i].arrivalTime < currentTime)){
-                    if(sortedArrival[i].runTime < sortedArrival[temp].runTime){
-                        temp = i;
-                        printf("hehe %d\n", i);
+                if((tempArray[i].processId != -99) && (tempArray[i].arrivalTime <= currentTime)){
+                        //set temp to be the first qualify candidate.
+                        if(nextProcess == -99){
+                            nextProcess = i;
+                        }
+                //if current process has shorter run time than nextProcess then set nextProcess to be current.
+                    if(tempArray[i].runTime < tempArray[nextProcess].runTime){
+                        nextProcess = i;
                    }
                 }
             }
-
            //add to visited
-           visited[counter++] = sortedArrival[temp].processId;
-           currentTime += (int)ceil(sortedArrival[temp].runTime);
+           currentTime += (int)ceilf(tempArray[nextProcess].runTime);
+           //
+           finalSorted[counter++] = tempArray[nextProcess];
+           //mark process as done.
+           tempArray[nextProcess].processId = -99;
         }
-
-        struct Process sorted[arrayLength];
-        for(i = 0; i < arrayLength; i++){
-
-            for(j = 0; j < arrayLength; j++){
-                if(sortedArrival[j].processId == visited[i]){
-                    sorted[i] = sortedArrival[j];
-                }
-            }
-        }
-
-        for(i = 0; i < arrayLength; i++){
-                printf("%c -", visited[i]);
-
-        }
-
-        struct Report* myReport = reportProcessing(sorted,arrayLength);
+        struct Report* myReport = reportProcessing(finalSorted,arrayLength);
+        printf("\nShortest Job First Analysis \n");
+        printf("-----------------------------\n");
         printReport(myReport,115);
+        printf("-----------------------------\n");
     }
-
-
 
 struct Report* reportProcessing(struct Process* sorted, int arrayLength){
     struct Report* myReport = malloc(sizeof(struct Report));
@@ -286,20 +274,16 @@ struct Report* reportProcessing(struct Process* sorted, int arrayLength){
 
         int m = 0;
         m = (int)timeCounter - timeSlideCounter;
-        printf("%d-",timeSlideCounter);
         while( m > 0)
         {
            myReport->timeSlice[timeSlideCounter++] = sorted[i].processId;
             m--;
         }
-        }
+    }
         myReport->avgResponse = (myReport->avgResponse/(i));
         myReport->avgWaiting = (myReport->avgWaiting/(i));
         myReport->avgTurnAround = (myReport->avgTurnAround/(i));
-         //printf("%f - %d",timeCounter,i );
         myReport->throughPut = timeCounter/(i);
-
-
         return myReport;
 }
 
@@ -311,13 +295,12 @@ void printReport(struct Report* myReport,int length){
     int i = 0;
     printf("Time Slide: \n");
     for(i = 0; i < length; i++){
-             if(i % 5 == 0 && i != 0){
-                printf("-");
-            }
+        if(i % 5 == 0 && i != 0){
+            printf("-");
+        }
     printf("%c",(char)(myReport->timeSlice[i]));
     }
-
-    printf("\nThroughput: %f", myReport->throughPut);
+    printf("\nThroughput: %f\n", myReport->throughPut);
 }
 
 void myPrint(struct Process* myArray,int arrayLength){
@@ -346,18 +329,8 @@ void sort(struct Process* unsortList,struct Process* sortedList, int arrayLength
             }
         }
     }
-};
-
-bool notVisited(int id, int* visited,int length){
-    bool result = true;
-    int i;
-    for(i = 0; i < length; i++){
-        if(visited[i] == id){
-            result = false;
-        }
-    }
-    return result;
 }
+
 
 
 
