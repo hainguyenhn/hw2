@@ -38,8 +38,17 @@ void sort(struct Process* unsortList,struct Process* sortedList, int arrayLength
 //report Processing
 struct Report* reportProcessing(struct Process* sorted, int arrayLength);
 
-//highest priority first - non preemtive
+//highest priority first - non preemtive with aging
+void highestPriorFirstNonPrewAging(struct Process* myProcess,int arrayLength);
+
+//highest priority first - non preemtive without aging
 void highestPriorFirstNonPre(struct Process* myProcess,int arrayLength);
+
+//highest priority first -  preemtive without aging
+void highestPriorFirstPre(struct Process* myProcess,int arrayLength);
+
+//return priority of a process.
+int getPriority(struct Process* processList,int length,int id);
 
 int main()
 {
@@ -171,9 +180,13 @@ int main()
 
   //akeProcesses(myProcessList,5);
  // myPrint(myProcessList,25);
-  //firstComefirstServe(myProcessList,25);
+ // firstComefirstServe(myProcessList,25);
   //shortestFirst(myProcessList,25);
-  highestPriorFirstNonPre(myProcessList,25);
+  //highestPriorFirstNonPrewAging(myProcessList,25);
+  //highestPriorFirstNonPre(myProcessList,25);
+  highestPriorFirstPre(myProcessList,25);
+
+
 
  return 0;
 }
@@ -229,13 +242,14 @@ void shortestFirst(struct Process* myProcess, int arrayLength){
                    }
                 }
             }
-           //add to visited
+            //add run time of process to timeslice
            currentTime += (int)ceilf(tempArray[nextProcess].runTime);
-           //
+           //add process to final sorted array.
            finalSorted[counter++] = tempArray[nextProcess];
            //mark process as done.
            tempArray[nextProcess].processId = -99;
         }
+
         struct Report* myReport = reportProcessing(finalSorted,arrayLength);
         printf("\nShortest Job First Analysis \n");
         printf("-----------------------------\n");
@@ -243,46 +257,215 @@ void shortestFirst(struct Process* myProcess, int arrayLength){
         printf("-----------------------------\n");
     }
 
-
-void highestPriorFirstNonPre(struct Process* myProcess,int arrayLength){
+void highestPriorFirstNonPrewAging(struct Process* myProcess,int arrayLength){
     int i = 0;
+    float tempAge= 0.0;
     int nextProcess;
     struct Process tempArray[arrayLength];
     //sort temp array to shortest arrival time.
     sort(myProcess,tempArray,arrayLength);
     myPrint(tempArray,arrayLength);
+    float priorityQueue [4][4];
+    memset(priorityQueue, 0.0, sizeof priorityQueue);
     struct Process finalSorted[arrayLength];
-
+    float aging [arrayLength];
+    memset(aging, 0, sizeof aging);
     int counter = 0;
     float currentTime = tempArray[0].arrivalTime;
     //loop through until all  processes are completed
     while(counter < arrayLength){
              nextProcess = -99;
+               if(currentTime >99){
+                    printf("end here %f",currentTime);
+            break;
+           }
         //find the next shortest job up to current time.
         for(i = 0; i < arrayLength; i++){
-                if((tempArray[i].processId != -99) && (tempArray[i].arrivalTime <= currentTime)){
+            if(tempArray[i].processId != -99){
+                  if(tempArray[i].arrivalTime <= currentTime){
                         //set temp to be the first qualify candidate.
                         if(nextProcess == -99){
                             nextProcess = i;
                         }
-                //if current process has shorter run time than nextProcess then set nextProcess to be current.
-                    if(tempArray[i].priority < tempArray[nextProcess].priority){
-                        nextProcess = i;
-                   }
-                }
+                            aging[i]= currentTime- tempArray[i].arrivalTime - (aging[i]);
+                         //   printf("Process %c priority: %d has wait time of %f\n",tempArray[i].processId,tempArray[i].priority,aging[i]);
+                            while(aging[i] > 5){
+                         //   printf("Process %c priority increase 1\n",tempArray[i].processId);
+                            tempArray[i].priority--;
+                            aging[i] -=5;
+                            }
+                         //    printf("NOW Process %c has priority: %d and wait time %f\n",tempArray[i].processId,tempArray[i].priority,aging[i]);
+                            //if current process has higher than nextProcess then set nextProcess to be current.
+                        if(tempArray[i].priority < tempArray[nextProcess].priority){
+                                nextProcess = i;
+                        }
+                  }
             }
+        }
+     //   add turn around time
+              priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][0] +=(currentTime - tempArray[nextProcess].arrivalTime);
+         //   add wait time
+              priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][1] +=(currentTime - tempArray[nextProcess].arrivalTime +
+                        tempArray[nextProcess].runTime);
+     //   add respond time
+             priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][2] +=(currentTime - tempArray[nextProcess].arrivalTime +
+                        tempArray[nextProcess].runTime);
+         //    add throughput
+       //  printf("before priority %d, number %f\n ", getPriority(myProcess,arrayLength,tempArray[nextProcess].processId),priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][3]);
+        priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][3]++;
+          //  printf("after priority %d, number %f \n", getPriority(myProcess,arrayLength,tempArray[nextProcess].processId),
+                 //  priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][3]);
+                  // priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][3]++;
+        //   add to visited
+     //   printf("Current time is %f\n", currentTime);
+       // printf("Highest priority is process is %c - priority:%d\n", tempArray[nextProcess].processId,tempArray[nextProcess].priority);
+
            //add to visited
-           currentTime += (int)ceilf(tempArray[nextProcess].runTime);
+           currentTime = (int)ceilf(tempArray[nextProcess].runTime + currentTime);
+           //add to final sort array.
+           finalSorted[counter++] = tempArray[nextProcess];
+           //mark process as done.
+           printf("\n***process %c is done.\n",   tempArray[nextProcess].processId);
+           tempArray[nextProcess].processId = -99;
+    }
+
+        for(i = 0; i < 4;i++){
+            printf("Priority Queue %d:\n",i+1);
+            printf("Turn around time: %f\n",priorityQueue[i][0]/=priorityQueue[i][3]);
+            printf("Wait around time: %f\n",priorityQueue[i][1]/=priorityQueue[i][3]);
+            printf("Respond around time: %f\n",priorityQueue[i][2]/=priorityQueue[i][3]);
+            printf("Throughtput : %f\n",priorityQueue[i][3]);
+            printf("-----------------\n");
+        }
+
+        struct Report* avgReport = reportProcessing(finalSorted,arrayLength);
+        printf("\nHighest Priority First (Non Preemptive) w/ Aging Analysis \n");
+        printf("-----------------------------\n");
+        printReport(avgReport,115);
+        printf("-----------------------------\n");
+}
+
+void highestPriorFirstNonPre(struct Process* myProcess,int arrayLength){
+     int i = 0;
+    float tempAge= 0.0;
+    int nextProcess;
+    struct Process tempArray[arrayLength];
+    //sort temp array to shortest arrival time.
+    sort(myProcess,tempArray,arrayLength);
+    myPrint(tempArray,arrayLength);
+    float priorityQueue [4][4];
+    memset(priorityQueue, 0.0, sizeof priorityQueue);
+    struct Process finalSorted[arrayLength];
+    int counter = 0;
+    float currentTime = tempArray[0].arrivalTime;
+    //loop through until all  processes are completed
+    while(counter < arrayLength){
+             nextProcess = -99;
+               if(currentTime >99){
+            break;
+           }
+        //find the next shortest job up to current time.
+        for(i = 0; i < arrayLength; i++){
+            if(tempArray[i].processId != -99){
+                  if(tempArray[i].arrivalTime <= currentTime){
+                        //set temp to be the first qualify candidate.
+                        if(nextProcess == -99){
+                            nextProcess = i;
+                        }
+                         //    printf("NOW Process %c has priority: %d and wait time %f\n",tempArray[i].processId,tempArray[i].priority,aging[i]);
+                            //if current process has higher than nextProcess then set nextProcess to be current.
+                        if(tempArray[i].priority < tempArray[nextProcess].priority){
+                                nextProcess = i;
+                        }
+                  }
+            }
+        }
+     //   add turn around time
+              priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][0] +=(currentTime - tempArray[nextProcess].arrivalTime);
+
+         //   add wait time
+              priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][1] +=(currentTime - tempArray[nextProcess].arrivalTime +
+                        tempArray[nextProcess].runTime);
+     //   add respond time
+             priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][2] +=(currentTime - tempArray[nextProcess].arrivalTime +
+                        tempArray[nextProcess].runTime);
+         //    add throughput
+       //  printf("before priority %d, number %f\n ", getPriority(myProcess,arrayLength,tempArray[nextProcess].processId),priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][3]);
+            priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][3]++;
+          //  printf("after priority %d, number %f \n", getPriority(myProcess,arrayLength,tempArray[nextProcess].processId),
+                 //  priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][3]);
+                  // priorityQueue[getPriority(myProcess,arrayLength,tempArray[nextProcess].processId)-1][3]++;
+        //   add to visited
+
+     //   printf("Current time is %f\n", currentTime);
+       // printf("Highest priority is process is %c - priority:%d\n", tempArray[nextProcess].processId,tempArray[nextProcess].priority);
+
+           //add to visited
+           currentTime = (int)ceilf(tempArray[nextProcess].runTime + currentTime);
            //
            finalSorted[counter++] = tempArray[nextProcess];
            //mark process as done.
+           printf("\n***process %c is done.\n",   tempArray[nextProcess].processId);
            tempArray[nextProcess].processId = -99;
+    }
+        printf("4 is %f", priorityQueue[3][1]);
+
+        for(i = 0; i < 4;i++){
+            priorityQueue[i][0] /= priorityQueue[i][3];
+            priorityQueue[i][1] /= priorityQueue[i][3];
+            priorityQueue[i][2] /= priorityQueue[i][3];
+            priorityQueue[i][3] /= currentTime;
         }
-        struct Report* myReport = reportProcessing(finalSorted,arrayLength);
-        printf("\nHighest Priority First (Non Preemptive) Analysis \n");
+
+
+        for(i = 0; i < 4;i++){
+            printf("Priority Queue %d:\n",i+1);
+            printf("Turn around time: %f\n",priorityQueue[i][0]);
+            printf("Wait around time: %f\n",priorityQueue[i][1]);
+            printf("Respond around time: %f\n",priorityQueue[i][2]);
+            printf("Throughtput : %f\n",priorityQueue[i][3]);
+            printf("-----------------\n");
+        }
+
+        struct Report* avgReport = reportProcessing(finalSorted,arrayLength);
+        printf("\nHighest Priority First (Non Preemptive) w/out Aging Analysis \n");
         printf("-----------------------------\n");
-        printReport(myReport,115);
+        printReport(avgReport,115);
         printf("-----------------------------\n");
+} //end highest priority non preemptive without aging
+
+void highestPriorFirstPre(struct Process* myProcess,int arrayLength){
+ struct Process tempArray[arrayLength];
+    //sort temp array to shortest arrival time.
+    sort(myProcess,tempArray,arrayLength);
+    myPrint(tempArray,arrayLength);
+    //quantum array stores process of each quantum being worked on.
+    int currentTime[115] = {-99};
+    float startTime[1000];
+    memset(startTime, 0.0, sizeof startTime);
+    int i,j;
+    for(i = 0;i < 115;i++){
+        for(j = 0;j < arrayLength;j++){
+            if(tempArray[j].arrivalTime <= i && tempArray[j].runTime > 0){
+                //set it for the first time.
+                if(currentTime[i] == -99){
+                currentTime[i] = j;
+                }
+                //if current has higher priority then set current = highest.
+                if(tempArray[j].priority < tempArray[currentTime[i]].priority){
+                    currentTime[i] = j;
+                }
+            }
+        }
+        printf("Process %c Runtime Now:%f\n",tempArray[currentTime[i]].processId,tempArray[currentTime[i]].runTime);
+        tempArray[currentTime[i]].runTime--;
+         printf("Process %c Runtime After:%f\n",tempArray[currentTime[i]].processId,tempArray[currentTime[i]].runTime);
+        printf("Time %d:%c \n\n",i,tempArray[currentTime[i]]);
+    }
+
+
+
+
 }
 
 struct Report* reportProcessing(struct Process* sorted, int arrayLength){
@@ -346,7 +529,6 @@ void myPrint(struct Process* myArray,int arrayLength){
     printf("%s%15s%15s%18s\n", "Process ID", "Arrival Time","Run Time", "Priority");
     int j = 0;
     for (j = 0; j < arrayLength; j++){
-
     printf("%c%20.2f%18.2f%15d\n", (char)(myArray[j].processId), myArray[j].arrivalTime, myArray[j].runTime, myArray[j].priority);
     }
 }
@@ -368,6 +550,17 @@ void sort(struct Process* unsortList,struct Process* sortedList, int arrayLength
             }
         }
     }
+}
+
+int getPriority(struct Process* processList,int length,int id){
+    int i,result = 1000;
+    for(i = 0;i < length;i++){
+        if(processList[i].processId == id){
+            result = processList[i].priority;
+            break;
+        }
+    }
+    return result;
 }
 
 
