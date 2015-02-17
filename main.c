@@ -47,6 +47,9 @@ void highestPriorFirstNonPre(struct Process* myProcess,int arrayLength);
 //highest priority first -  preemtive without aging
 void highestPriorFirstPre(struct Process* myProcess,int arrayLength);
 
+//highest priority first -  preemtive with aging
+void highestPriorFirstPrewAging(struct Process* myProcess,int arrayLength);
+
 //return priority of a process.
 int getPriority(struct Process* processList,int length,int id);
 
@@ -185,9 +188,8 @@ int main()
   //highestPriorFirstNonPrewAging(myProcessList,25);
   //highestPriorFirstNonPre(myProcessList,25);
   highestPriorFirstPre(myProcessList,25);
-
-
-
+  printf("-----\n\n");
+  highestPriorFirstPrewAging(myProcessList,25);
  return 0;
 }
 
@@ -433,7 +435,7 @@ void highestPriorFirstNonPre(struct Process* myProcess,int arrayLength){
 } //end highest priority non preemptive without aging
 
 void highestPriorFirstPre(struct Process* myProcess,int arrayLength){
- struct Process tempArray[arrayLength];
+    struct Process tempArray[arrayLength];
     //sort temp array to shortest arrival time.
     sort(myProcess,tempArray,arrayLength);
     myPrint(tempArray,arrayLength);
@@ -503,9 +505,10 @@ void highestPriorFirstPre(struct Process* myProcess,int arrayLength){
             }
          i++;
     }
-    for(j = 0; j < 115;j++){
+  /**  for(j = 0; j < 115;j++){
         printf("%d.%c \n", j,tempArray[currentTime[j]].processId);
     }
+    **/
    for(j = 0; j < 4;j++){
             avgTurnAround += priorityQueue[j][0];
             priorityQueue[j][0] /= priorityQueue[j][3];
@@ -518,9 +521,132 @@ void highestPriorFirstPre(struct Process* myProcess,int arrayLength){
         }
 
         avgTurnAround /= avgThroughput;
-        avgWaitTime /= avgWaitTime;
-        avgRespond /= avgWaitTime;
+        avgWaitTime /= avgThroughput;
+        avgRespond /= avgThroughput;
         avgThroughput /= i;
+           printf("Average Turn Around Time: %.2f\n", avgTurnAround);
+            printf("Average Turn Waiting Time: %.2f\n", avgWaitTime);
+            printf("Average Turn Response Time: %f\n", avgRespond);
+            printf("Throughput: %f\n", avgThroughput);
+        for(j = 0; j < 4;j++){
+            printf("Priority Queue %d:\n",j+1);
+            printf("Turn around time: %f\n",priorityQueue[j][0]);
+            printf("Wait around time: %f\n",priorityQueue[j][1]);
+            printf("Respond around time: %f\n",priorityQueue[j][2]);
+            printf("Throughtput : %f\n",priorityQueue[j][3]);
+            printf("-----------------\n");
+        }
+}
+
+void highestPriorFirstPrewAging(struct Process* myProcess,int arrayLength){
+struct Process tempArray[arrayLength];
+    //sort temp array to shortest arrival time.
+    sort(myProcess,tempArray,arrayLength);
+    myPrint(tempArray,arrayLength);
+    //quantum array stores process of each quantum being worked on.
+    int currentTime[1000] ;
+    memset(currentTime, -1, sizeof currentTime);
+    float startTime[arrayLength];
+    memset(startTime, 0.0, sizeof startTime);
+    float priorityQueue[4][4];
+    memset(priorityQueue, 0.0, sizeof priorityQueue);
+    int i,j;
+    i = 0;
+    tempArray[0].arrivalTime = floorf(tempArray[0].arrivalTime);
+    tempArray[0].runTime = tempArray[0].runTime + tempArray[0].arrivalTime;
+    float avgWaitTime = 0.0;
+    float avgTurnAround = 0.0;
+    float avgRespond = 0.0;
+    float tempEndTime = 0.0;
+    float tempWaitTime = 0.0;
+    float tempTurnAround = 0.0;
+    float tempRespond = 0.0;
+    float avgThroughput = 0.0;
+    int lastEmpty = 0;
+        float aging [arrayLength];
+    memset(aging, 0, sizeof aging);
+
+
+    while((i< 100) || (lastEmpty == 0)){
+        for(j = 0;j < arrayLength;j++){
+            if((tempArray[j].arrivalTime <= i) && (tempArray[j].runTime > 0)){
+
+            aging[j]++;
+
+                //set it for the first time.
+                if(currentTime[i] == -1){
+                currentTime[i] = j;
+                }
+                //if current has higher priority then set current = highest.
+                if(tempArray[j].priority < tempArray[currentTime[i]].priority){
+                        aging[currentTime[i]]--;
+                    currentTime[i] = j;
+                }
+            }
+        }
+        for(j = 0; j < arrayLength;j++){
+               if(aging[j]>4){
+                tempArray[j].priority++;
+                aging[j] = 0;
+            }
+        }
+         if(currentTime[i] != -1){
+                lastEmpty = 0;
+                //  printf("%d Process %c Runtime Now:%f\n",i,tempArray[currentTime[i]].processId,tempArray[currentTime[i]].runTime);
+                    tempArray[currentTime[i]].runTime--;
+                    if(tempArray[currentTime[i]].runTime <= 0){
+                        if(currentTime[i-1] == 95){
+                            startTime[currentTime[i]] = tempArray[currentTime[i]].arrivalTime;
+                        }
+                        else{
+                           startTime[currentTime[i]] =i;
+                        }
+                            tempEndTime = i+ tempArray[currentTime[i]].runTime+1;
+                            tempWaitTime = tempEndTime - tempArray[currentTime[i]].arrivalTime -tempArray[currentTime[i]].runTime;
+                            tempTurnAround = tempEndTime - tempArray[currentTime[i]].arrivalTime;
+                            tempRespond = startTime[currentTime[i]] - tempArray[currentTime[i]].arrivalTime;
+                            //add turn around.
+                        priorityQueue[getPriority(myProcess,arrayLength,tempArray[currentTime[i]].processId)-1][0] += tempTurnAround;
+                            //add waiting time.
+                        priorityQueue[getPriority(myProcess,arrayLength,tempArray[currentTime[i]].processId)-1][1] += tempWaitTime;
+                        //add respond time
+                         priorityQueue[getPriority(myProcess,arrayLength,tempArray[currentTime[i]].processId)-1][2] +=tempRespond;
+                         //add throughput.
+                          priorityQueue[getPriority(myProcess,arrayLength,tempArray[currentTime[i]].processId)-1][3]++;
+                    }
+           // printf("Process %c Runtime After:%f\n\n",tempArray[currentTime[i]].processId,tempArray[currentTime[i]].runTime);
+            }
+            else{
+                currentTime[i] = 95;
+                lastEmpty = 1;
+            }
+         i++;
+    }
+   /** for(j = 0; j < 115;j++){
+        printf("%d.%c \n", j,tempArray[currentTime[j]].processId);
+    }
+    **/
+   for(j = 0; j < 4;j++){
+            avgTurnAround += priorityQueue[j][0];
+            priorityQueue[j][0] /= priorityQueue[j][3];
+            avgWaitTime += priorityQueue[j][1];
+            priorityQueue[j][1] /= priorityQueue[j][3];
+            avgRespond += priorityQueue[j][2];
+            priorityQueue[j][2] /= priorityQueue[j][3];
+            avgThroughput += priorityQueue[j][3];
+            priorityQueue[j][3] /=i ;
+        }
+
+         avgTurnAround /= avgThroughput;
+        avgWaitTime /= avgThroughput;
+        avgRespond /= avgThroughput;
+        avgThroughput /= i;
+            printf("Average Turn Around Time: %.2f\n", avgTurnAround);
+            printf("Average Turn Waiting Time: %.2f\n", avgWaitTime);
+            printf("Average Turn Response Time: %f\n", avgRespond);
+            printf("Throughput: %f\n", avgThroughput);
+
+
         for(j = 0; j < 4;j++){
             printf("Priority Queue %d:\n",j+1);
             printf("Turn around time: %f\n",priorityQueue[j][0]);
